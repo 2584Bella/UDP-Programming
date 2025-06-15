@@ -10,6 +10,7 @@ python3 >= 3.6 # Python 3.6 及以上版本
 依赖环境：与服务器端一致。
 
 二、参数配置
+
 1. 服务器端参数（代码内配置）
 #python
 # udpserver.py 关键配置
@@ -25,6 +26,7 @@ python udpclient.py <server_ip> <server_port>
 <server_port>：服务器端口（ 8888，需与服务器代码一致）。
 
 三、启动命令
+
 1. 服务器端
 #python
 # 启动服务器
@@ -43,12 +45,13 @@ python udpclient.py 127.0.0.1 8888
 
 预期输出：
 连接 建立成功
-第1个（第0~55字节）client端已发送
-第1个（第0~55字节）server端已收到，RTT是2.56ms
-第2个（第56~99字节）client端已发送
+第1个（第0-55字节）client端已发送
+第1个（第0-55字节）server端已收到，RTT是2.56ms
+第2个（第56-99字节）client端已发送
 ...
 
 四、程序功能说明
+
 1. 核心特性
 基于 UDP 协议模拟 TCP 的可靠传输机制。
 实现了三次握手连接建立（SYN, SYN-ACK, ACK）。
@@ -65,20 +68,22 @@ TYPE=4: DATA（数据）
 TYPE=5: ACK_DATA（带时间戳的数据确认）
 
 五、输出说明
+
 1. 客户端关键输出
  建立成功
-第X个（第Y~Z字节）client端已发送
-第X个（第Y~Z字节）server端已收到，RTT是XX.XXms
-重传 第X个（第Y~Z字节）数据包
+第X个（第Y-Z字节）client端已发送
+第X个（第Y-Z字节）server端已收到，RTT是XX.XXms
+重传 第X个（第Y-Z字节）数据包
 快速重传 收到X次ACKX，触发快速重传
-快速重传 第X个（第Y~Z字节）数据包
+快速重传 第X个（第Y-Z字节）数据包
 2. 服务器端关键输出
 SYN 来自 (IP, PORT) 的连接请求
 接收 (IP, PORT) 的数据包 Seq=X 长度=Y
-收到乱序包: X，期望: Y，发送[ACK]: Z
+收到乱序包: X，期望: Y，发送ACK: Z
 丢包模拟 丢弃数据包 Seq=X
 
 六、性能指标汇总
+
 程序运行结束后，客户端会输出详细的性能统计：
 汇总信息
 丢包率：X.XX% 
