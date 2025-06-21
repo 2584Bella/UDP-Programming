@@ -5,7 +5,10 @@ import argparse         #用于解析命令行参数
 import random           #用于生成随机数据和模拟网络环境
 import pandas as pd     #用于数据分析和统计
 
+# 协议参数
+#缓冲区大小
 BUFFER_SIZE = 1024 #单次接收数据的最大字节数
+#定义报文类型
 SYN = 1 #同步
 SYN_ACK = 2 #同步确认
 ACK = 3
@@ -27,7 +30,7 @@ class UDPClient:
         #创建套接字（使用Ipv4,UDP协议）
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.seq_base = 1  # 窗口基序号
-        self.timeout = INIT_TIMEOUT
+        self.timeout = INIT_TIMEOUT#超时时间
         self.sent = {}  # 已发送但未确认的包
         self.total_packets = total_packets  # 总共需要发送的包数量
         self.rtt_list = []  #记录rtt时间
@@ -51,7 +54,7 @@ class UDPClient:
             type_, server_seq, ack, _ = struct.unpack(ADDR_FORMAT, data[:12])
             if type_ == SYN_ACK and ack == self.seq_base + 1:
                 #发送ack包
-                ack_ = struct.pack(ADDR_FORMAT, ACK, server_seq + 1, server_seq + 1, 0) #确认服务器的syn，期望服务器发送的下一个包
+                ack_ = struct.pack(ADDR_FORMAT, ACK, server_seq + 1, server_seq + 1, 0) #确认服务器的syn
                 self.sock.sendto(ack_, self.server_addr)
                 self.next_seq = self.seq_base #从基序号开始发送
                 print("[连接] 建立成功")
@@ -64,8 +67,8 @@ class UDPClient:
             return  # 已经发送了足够数量的包
 
         usage = self.window_usage()  # 计算当前窗口已使用的字节数
-        while (self.next_seq - 1) < self.total_packets and usage < WINDOW_SIZE:
-            block_len = random.randint(MIN_SIZE, MAX_SIZE)
+        while (self.next_seq - 1) < self.total_packets and usage < WINDOW_SIZE:#如果窗口没满
+            block_len = random.randint(MIN_SIZE, MAX_SIZE)#随机生成数据报长度
             #如果超出窗口大小
             if usage + block_len > WINDOW_SIZE:
                 break
@@ -78,24 +81,24 @@ class UDPClient:
             print(f"第{seq}个（第{self.byte_index}~{self.byte_index + block_len - 1}字节）client端已发送")
             #记录已发送但未确认的数据包信息
             self.sent[seq] = {
-                'payload': payload,
-                'time': time.time(),
-                'start': self.byte_index,
-                'end': self.byte_index + block_len - 1,
+                'payload': payload,#数据
+                'time': time.time(),#发送时间
+                'start': self.byte_index,#起始字节编号
+                'end': self.byte_index + block_len - 1,#终止字节编号
                 'acked': False,
                 'retries': 0 # 重传次数计数
             }
             #更新当前字节索引
             self.byte_index += block_len
             self.next_seq += 1
-            usage += block_len
+            usage += block_len#更新窗口内已使用的字节数
         #当窗口中有未确认的数据包且计时器未运行时，启动计时器监控首个未确认包的超时状态。
         if not self.timer_running and self.sent:
             self.start_timer()
 
     #启动计时器
     def start_timer(self):
-        self.timer_start = time.time()
+        self.timer_start = time.time()#记录启动时间
         self.timer_running = True
 
     #停止计时器
@@ -130,13 +133,13 @@ class UDPClient:
     def receive_ack(self):
         try:
             self.sock.settimeout(0.05)  # 设置短超时，避免长时间阻塞
-            data, _ = self.sock.recvfrom(BUFFER_SIZE)
+            data, _ = self.sock.recvfrom(BUFFER_SIZE)#接收数据报
 
             #数据包长度不符合
             if len(data) < 12:
                 return
 
-            type_, _, ack_seq, _ = struct.unpack(ADDR_FORMAT, data[:12])
+            type_, _, ack_seq, _ = struct.unpack(ADDR_FORMAT, data[:12])#解包数据报
 
             if type_ == ACK_DATA:
                 if ack_seq == 0:
@@ -173,7 +176,7 @@ class UDPClient:
                 # 如果窗口滑动了，调整计时器
                 if old_base != self.seq_base:
                     self.stop_timer()
-                    if self.sent:
+                    if self.sent:#如果还有未确认的包，启动计时器
                         self.start_timer()
         except socket.timeout:
             pass
@@ -190,14 +193,15 @@ class UDPClient:
             print(f"[快速重传] 第{seq_num}个（第{info['start']}~{info['end']}字节）数据包")
 
     def window_usage(self):
-        return sum(len(info['payload']) for info in self.sent.values() if not info['acked']) #遍历数据包信息，如果未被确认，就获取数据包长度相加
+        # 遍历数据包信息，如果未被确认，就获取数据包长度相加
+        return sum(len(info['payload']) for info in self.sent.values() if not info['acked'])
 
     def all_acked(self):
         # 已发送足够数量的包(非重传)且所有包都已确认
         return (self.next_seq - 1) >= self.total_packets and len(self.sent) == 0
 
     def start(self):
-        self.connect()
+        self.connect()#尝试建立连接
         while not self.all_acked():
             self.send_window()  # 发送窗口内的数据
             self.receive_ack()  # 接收确认
@@ -230,4 +234,4 @@ if __name__ == "__main__":
     #解析命令行参数
     args = parser.parse_args()
     client = UDPClient(args.server_ip, args.server_port)
-    client.start()
+    client.start()#启动客户端线程
