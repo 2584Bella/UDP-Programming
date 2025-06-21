@@ -5,7 +5,9 @@ from threading import Thread    #实现多线程并发
 from datetime import datetime   #日期和时间处理
 
 # 协议参数
+#缓冲区大小
 BUFFER_SIZE = 1024 #单次接收数据的最大字节数
+#定义报文类型
 SYN = 1 #同步
 SYN_ACK = 2 #同步确认
 ACK = 3
@@ -62,13 +64,12 @@ class UDPServer:
             if seq == self.connections[addr]['expected_seq']: #如果收到的是期望的包
                 print(f"[接收] {addr} 的数据包 Seq={seq} 长度={length}")
                 ack_num = seq #当前确认号
-                #更新期望接收的序列号
+                # 更新期望接收的序列号
                 self.connections[addr]['expected_seq'] += 1
                 self.connections[addr]['last_ack'] = seq
                 #发送Ack
                 ack_pkt = struct.pack(ADDR_FORMAT, ACK_DATA, 0, ack_num, 0) + server_time.encode() #字节序列号和长度为0
                 self.sock.sendto(ack_pkt, addr)
-                
 
             else:#如果收到的是乱序包
                 print(f"收到乱序包: {seq}，期望:{self.connections[addr]['expected_seq']}，发送[ACK]:{self.connections[addr]['last_ack']}")
